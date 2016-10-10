@@ -158,10 +158,8 @@ mem_init(void)
 	check_page_free_list(1);
 	check_page_alloc();
 	check_page();
-    // Remove this line when you're ready to test this function.
-	panic("mem_init: This function is not finished\n");
 
-	//////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////
 	// Now we set up virtual memory
 
 	//////////////////////////////////////////////////////////////////////
@@ -171,6 +169,8 @@ mem_init(void)
 	//      (ie. perm = PTE_U | PTE_P)
 	//    - pages itself -- kernel RW, user NONE
 	// Your code goes here:
+    size_t pages_size = ROUNDUP(npages*sizeof(struct PageInfo), PGSIZE);
+    boot_map_region(kern_pgdir, UPAGES, pages_size, PADDR(pages), PTE_W);
 
 	//////////////////////////////////////////////////////////////////////
 	// Use the physical memory that 'bootstack' refers to as the kernel
@@ -183,6 +183,8 @@ mem_init(void)
 	//       overwrite memory.  Known as a "guard page".
 	//     Permissions: kernel RW, user NONE
 	// Your code goes here:
+    boot_map_region(kern_pgdir, KSTACKTOP-KSTKSIZE, KSTKSIZE,
+        PADDR(bootstack), PTE_W);
 
 	//////////////////////////////////////////////////////////////////////
 	// Map all of physical memory at KERNBASE.
@@ -192,6 +194,8 @@ mem_init(void)
 	// we just set up the mapping anyway.
 	// Permissions: kernel RW, user NONE
 	// Your code goes here:
+    boot_map_region(kern_pgdir, KERNBASE, 0xFFFFFFFF - KERNBASE, 0, PTE_W);
+
 
 	// Check that the initial page directory has been set up correctly.
 	check_kern_pgdir();
@@ -369,9 +373,9 @@ static void
 boot_map_region(pde_t *pgdir, uintptr_t va, size_t size, physaddr_t pa, int perm)
 {
 	// Fill this function in
-    for (int pg_num = 0; pg_num < size / PGSIZE; pg_num++) {
-        pte_t *pte_p = pgdir_walk(pgdir, PGADDR(0, pg_num, 0), 1);
-        *pte_p = (pa + (pg_num * PGSIZE)) | perm | PTE_P;
+    for (uint32_t offset = 0; offset < size; offset += PGSIZE) {
+        pte_t *pte_p = pgdir_walk(pgdir, (void*)(va + offset), 1);
+        *pte_p = (pa + offset) | perm | PTE_P;
     }
 }
 
@@ -648,7 +652,6 @@ check_kern_pgdir(void)
 	for (i = 0; i < n; i += PGSIZE)
 		assert(check_va2pa(pgdir, UPAGES + i) == PADDR(pages) + i);
 
-
 	// check phys mem
 	for (i = 0; i < npages * PGSIZE; i += PGSIZE)
 		assert(check_va2pa(pgdir, KERNBASE + i) == i);
@@ -690,10 +693,10 @@ check_va2pa(pde_t *pgdir, uintptr_t va)
 
 	pgdir = &pgdir[PDX(va)];
 	if (!(*pgdir & PTE_P))
-		return ~0;
+        return ~0;
 	p = (pte_t*) KADDR(PTE_ADDR(*pgdir));
 	if (!(p[PTX(va)] & PTE_P))
-		return ~0;
+        return ~0;
 	return PTE_ADDR(p[PTX(va)]);
 }
 
