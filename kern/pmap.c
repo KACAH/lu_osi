@@ -254,16 +254,16 @@ page_init(void)
 	// NB: DO NOT actually touch the physical memory corresponding to
 	// free pages!
     page_free_list = NULL;
-	size_t i;
+    size_t i;
     size_t io_mem_page = IOPHYSMEM / PGSIZE;
     size_t kernel_top = (EXTPHYSMEM + PADDR(boot_alloc(0))) / PGSIZE;
     for (i = 0; i < npages; i++) {
-		pages[i].pp_ref = 0;
+        pages[i].pp_ref = 0;
         if (i != 0 && (i < io_mem_page || i >= kernel_top)) {
-		    pages[i].pp_link = page_free_list;
-		    page_free_list = &pages[i];
+            pages[i].pp_link = page_free_list;
+            page_free_list = &pages[i];
         }
-	}
+    }
 }
 
 //
