@@ -527,7 +527,26 @@ int
 user_mem_check(struct Env *env, const void *va, size_t len, int perm)
 {
 	// LAB 3: Your code here.
+    uintptr_t first_va = (uintptr_t) va;
+    uintptr_t from_va = ROUNDDOWN(first_va, PGSIZE);
+    uintptr_t to_va = ROUNDUP(first_va + len, PGSIZE);
+    pte_t *pgpage;
+    // check 'present' flag in any case
+    perm = perm | PTE_P;
 
+    for (; from_va < to_va; from_va += PGSIZE) {
+        pgpage = pgdir_walk(env->env_pgdir, (void *) from_va, 0);
+        if (from_va >= ULIM || pgpage == NULL || ((*pgpage & perm) != perm)) {
+            // check if this is first iteration, when from_va can be
+            // less than 'va' due to ROUNDDOWN call
+            if (from_va < first_va) {
+                user_mem_check_addr = first_va;
+            } else {
+                user_mem_check_addr = from_va;
+            }
+            return -E_FAULT;
+        }
+    }
 	return 0;
 }
 
