@@ -12,6 +12,9 @@
 #include <kern/console.h>
 #include <kern/sched.h>
 
+
+static envid_t sys_getenvid(void);
+
 // Print a string to the system console.
 // The string is exactly 'len' characters long.
 // Destroys the environment on memory errors.
@@ -22,6 +25,9 @@ sys_cputs(const char *s, size_t len)
 	// Destroy the environment if not.
 
 	// LAB 3: Your code here.
+    struct Env *env;
+	envid2env(sys_getenvid(), &env, 1);
+    user_mem_assert(env, s, len, PTE_U);
 
 	// Print the string supplied by the user.
 	cprintf("%.*s", len, s);
@@ -270,7 +276,23 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 	// Call the function corresponding to the 'syscallno' parameter.
 	// Return any appropriate return value.
 	// LAB 3: Your code here.
-
-	panic("syscall not implemented");
+    int32_t res = 0;
+    switch (syscallno) {
+        case SYS_cputs:
+            sys_cputs((char*)a1, a2);
+            break;
+        case SYS_cgetc:
+            res = sys_cgetc();
+            break;
+        case SYS_getenvid:
+            res = sys_getenvid();
+            break;
+        case SYS_env_destroy:
+            sys_env_destroy(a1);
+            break;
+        default:
+            res = -E_INVAL;
+    }
+    return res;
 }
 
