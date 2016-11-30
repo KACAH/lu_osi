@@ -289,7 +289,7 @@ sys_page_map(envid_t srcenvid, void *srcva,
     }
 
     struct Env *src_env, *dst_env;
-	int res = envid2env(srcenvid, &src_env, 1);
+	res = envid2env(srcenvid, &src_env, 1);
 	if (res < 0) {
         return res;
     }
