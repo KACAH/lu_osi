@@ -75,3 +75,26 @@ Implement the system calls described above in kern/syscall.c.
 [sys_page_map] (https://github.com/KACAH/lu_osi/blob/e59a479744b27d57c37afc189a1befc0707160d3/kern/syscall.c#L265): Copy a page mapping (not the contents of a page!) from one environment's address space to another, leaving a memory sharing arrangement in place so that the new and the old mappings both refer to the same page of physical memory. 
 
 [sys_page_unmap] (https://github.com/KACAH/lu_osi/blob/e59a479744b27d57c37afc189a1befc0707160d3/kern/syscall.c#L322): Unmap a page mapped at a given virtual address in a given environment. 
+
+Part B: Copy-on-Write Fork
+==
+
+Exercise 8
+===
+Implement the [sys_env_set_pgfault_upcall] (https://github.com/KACAH/lu_osi/blob/e59a479744b27d57c37afc189a1befc0707160d3/kern/syscall.c#L145) system call. Be sure to enable permission checking when looking up the environment ID of the target environment, since this is a "dangerous" system call.
+
+Exercise 9
+===
+Implement the code in [page_fault_handler] (https://github.com/KACAH/lu_osi/blob/e59a479744b27d57c37afc189a1befc0707160d3/kern/trap.c#L407) in kern/trap.c required to dispatch page faults to the user-mode handler. Be sure to take appropriate precautions when writing into the exception stack. (What happens if the user environment runs out of space on the exception stack?)
+
+Exercise 10
+===
+Implement the _pgfault_upcall routine in [lib/pfentry.S] (https://github.com/KACAH/lu_osi/blob/e59a479744b27d57c37afc189a1befc0707160d3/lib/pfentry.S#L68). The interesting part is returning to the original point in the user code that caused the page fault. You'll return directly there, without going back through the kernel. The hard part is simultaneously switching stacks and re-loading the EIP.
+
+Exercise 11
+===
+Finish [set_pgfault_handler()] (https://github.com/KACAH/lu_osi/blob/e59a479744b27d57c37afc189a1befc0707160d3/lib/pgfault.c#L25) in lib/pgfault.c.
+
+Exercise 12
+===
+Implement [fork] (https://github.com/KACAH/lu_osi/blob/e59a479744b27d57c37afc189a1befc0707160d3/lib/fork.c#L116), [duppage] (https://github.com/KACAH/lu_osi/blob/e59a479744b27d57c37afc189a1befc0707160d3/lib/fork.c#L74) and [pgfault] (https://github.com/KACAH/lu_osi/blob/e59a479744b27d57c37afc189a1befc0707160d3/lib/fork.c#L18) in lib/fork.c.
