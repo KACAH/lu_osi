@@ -380,7 +380,50 @@ static int
 sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_try_send not implemented");
+    struct Env *env;
+    int res = envid2env(envid, &env, 0);
+    if (res < 0) {
+        return res;
+    }
+    if (!env->env_ipc_recving) {
+        return -E_IPC_NOT_RECV;
+    }
+    if (srcva < (void*) UTOP) {
+        if (srcva != ROUNDDOWN(srcva, PGSIZE)) {
+            return -E_INVAL;
+        }
+        res = check_sys_perm(perm);
+        if (res < 0) {
+            return res;
+        }
+
+        pte_t *pte;
+        struct PageInfo *page = page_lookup(curenv->env_pgdir, srcva, &pte);
+	    if (page == NULL) {
+            return -E_INVAL;
+        }
+
+        if (((*pte & PTE_W) == 0) && ((perm & PTE_W) > 0)) {
+            return -E_INVAL;
+        }
+
+        if (env->env_ipc_dstva < (void *) UTOP) {
+            res = page_insert(env->env_pgdir, page, env->env_ipc_dstva, perm);
+            if (res < 0) {
+                return res;
+            }
+            env->env_ipc_perm = perm;
+        } else {
+            env->env_ipc_perm = 0;
+        }
+    }
+
+    env->env_ipc_recving = 0;
+    env->env_ipc_value = value;
+    env->env_ipc_from = curenv->env_id;
+    env->env_status = ENV_RUNNABLE;
+    env->env_tf.tf_regs.reg_eax = 0;
+    return 0;
 }
 
 // Block until a value is ready.  Record that you want to receive
@@ -398,8 +441,15 @@ static int
 sys_ipc_recv(void *dstva)
 {
 	// LAB 4: Your code here.
-	panic("sys_ipc_recv not implemented");
-	return 0;
+    if (dstva < (void *) UTOP && dstva != ROUNDDOWN(dstva, PGSIZE)) {
+        return -E_INVAL;
+    }
+
+    curenv->env_ipc_recving = 1;
+    curenv->env_ipc_dstva = dstva;
+    curenv->env_status = ENV_NOT_RUNNABLE;
+    sys_yield();
+    return 0;
 }
 
 // Dispatches to the correct kernel function, passing the arguments.
@@ -444,6 +494,10 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
         case SYS_page_unmap:
             res = sys_page_unmap(a1, (void*)a2);
             break;
+        case SYS_ipc_try_send:
+            return sys_ipc_try_send(a1, a2, (void*)a3, a4);
+        case SYS_ipc_recv:
+            return sys_ipc_recv((void*)a1);
         default:
             res = -E_INVAL;
     }
