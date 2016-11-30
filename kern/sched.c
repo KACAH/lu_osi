@@ -29,8 +29,25 @@ sched_yield(void)
 	// below to halt the cpu.
 
 	// LAB 4: Your code here.
+    uint32_t next_env, cur_env;
+    if (curenv) {
+        cur_env = ENVX(curenv->env_id);
+    } else {
+        cur_env = 0;
+    }
+    for (uint32_t offset = 0; offset < NENV; offset++) {
+        next_env = (cur_env + offset) % NENV;
+        if (envs[next_env].env_status == ENV_RUNNABLE) {
+            // env_run is noreturn function, so it is safe to call it
+            // without 'return' statement.
+            env_run(&envs[next_env]);
+        }
+    }
+    if (curenv && curenv->env_status == ENV_RUNNING) {
+        env_run(curenv);
+    }
 
-	// sched_halt never returns
+   	// sched_halt never returns
 	sched_halt();
 }
 

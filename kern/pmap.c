@@ -263,7 +263,11 @@ mem_init_mp(void)
 	//     Permissions: kernel RW, user NONE
 	//
 	// LAB 4: Your code here:
-
+    for (uint32_t cpu_id = 0; cpu_id < NCPU; cpu_id++) {
+        uintptr_t stk_va = KSTACKTOP - cpu_id * (KSTKSIZE + KSTKGAP);
+        physaddr_t stk_pa = PADDR(percpu_kstacks[cpu_id]);
+        boot_map_region(kern_pgdir, stk_va - KSTKSIZE, KSTKSIZE, stk_pa, PTE_W);
+    }
 }
 
 // --------------------------------------------------------------
@@ -306,9 +310,11 @@ page_init(void)
     size_t i;
     size_t io_mem_page = IOPHYSMEM / PGSIZE;
     size_t kernel_top = (EXTPHYSMEM + PADDR(boot_alloc(0))) / PGSIZE;
+    size_t mpentry_page = MPENTRY_PADDR / PGSIZE;
     for (i = 0; i < npages; i++) {
         pages[i].pp_ref = 0;
-        if (i != 0 && (i < io_mem_page || i >= kernel_top)) {
+        if (i != 0 && (i < io_mem_page || i >= kernel_top)
+        && (i != mpentry_page)) {
             pages[i].pp_link = page_free_list;
             page_free_list = &pages[i];
         }
@@ -569,7 +575,16 @@ mmio_map_region(physaddr_t pa, size_t size)
 	// Hint: The staff solution uses boot_map_region.
 	//
 	// Your code here:
-	panic("mmio_map_region not implemented");
+    physaddr_t start = ROUNDDOWN(pa, PGSIZE);
+    physaddr_t end = ROUNDUP(pa + size, PGSIZE);
+    size_t aligned_size = end - start;
+    if (base + aligned_size >= MMIOLIM) {
+        panic("Not enough memory for mmio mapping");
+    }
+    boot_map_region(kern_pgdir, base, aligned_size, pa, PTE_PCD|PTE_PWT|PTE_W);
+    void *rv = (void*) base;
+    base += aligned_size;
+    return rv;
 }
 
 static uintptr_t user_mem_check_addr;
