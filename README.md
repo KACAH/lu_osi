@@ -98,3 +98,20 @@ Finish [set_pgfault_handler()] (https://github.com/KACAH/lu_osi/blob/e59a479744b
 Exercise 12
 ===
 Implement [fork] (https://github.com/KACAH/lu_osi/blob/e59a479744b27d57c37afc189a1befc0707160d3/lib/fork.c#L116), [duppage] (https://github.com/KACAH/lu_osi/blob/e59a479744b27d57c37afc189a1befc0707160d3/lib/fork.c#L74) and [pgfault] (https://github.com/KACAH/lu_osi/blob/e59a479744b27d57c37afc189a1befc0707160d3/lib/fork.c#L18) in lib/fork.c.
+
+Part C: Preemptive Multitasking and Inter-Process communication (IPC)
+==
+
+Exercise 13
+===
+Modify [kern/trapentry.S] (https://github.com/KACAH/lu_osi/blob/e59a479744b27d57c37afc189a1befc0707160d3/kern/trapentry.S#L71) and [kern/trap.c] (https://github.com/KACAH/lu_osi/blob/e59a479744b27d57c37afc189a1befc0707160d3/kern/trap.c#L137) to initialize the appropriate entries in the IDT and provide handlers for IRQs 0 through 15. Then modify the code in [env_alloc()] (https://github.com/KACAH/lu_osi/blob/e59a479744b27d57c37afc189a1befc0707160d3/kern/env.c#L259) in kern/env.c to ensure that user environments are always run with interrupts enabled.
+
+Exercise 14
+===
+Modify the kernel's [trap_dispatch()] (https://github.com/KACAH/lu_osi/blob/e59a479744b27d57c37afc189a1befc0707160d3/kern/trap.c#L283) function so that it calls sched_yield() to find and run a different environment whenever a clock interrupt takes place.
+
+Exercise 15
+===
+Implement [sys_ipc_recv] (https://github.com/KACAH/lu_osi/blob/e59a479744b27d57c37afc189a1befc0707160d3/kern/syscall.c#L441) and [sys_ipc_try_send] (https://github.com/KACAH/lu_osi/blob/e59a479744b27d57c37afc189a1befc0707160d3/kern/syscall.c#L380) in kern/syscall.c. Read the comments on both before implementing them, since they have to work together. When you call envid2env in these routines, you should set the checkperm flag to 0, meaning that any environment is allowed to send IPC messages to any other environment, and the kernel does no special permission checking other than verifying that the target envid is valid.
+
+Then implement the [ipc_recv] (https://github.com/KACAH/lu_osi/blob/e59a479744b27d57c37afc189a1befc0707160d3/lib/ipc.c#L25) and [ipc_send] (https://github.com/KACAH/lu_osi/blob/e59a479744b27d57c37afc189a1befc0707160d3/lib/ipc.c#L61) functions in lib/ipc.c.
