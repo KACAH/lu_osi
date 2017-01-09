@@ -77,7 +77,12 @@ duppage(envid_t envid, unsigned pn)
 
 	// LAB 4: Your code here.
     void *va = (void*) (pn * PGSIZE);
-    if ((uvpt[pn] & (PTE_W | PTE_COW)) > 0) {
+    if ((uvpt[pn] & PTE_SHARE) > 0) {
+        r = sys_page_map(0, va, envid, va, uvpt[pn] & PTE_SYSCALL);
+        if (r < 0) {
+            return r;
+        }
+    } else if ((uvpt[pn] & (PTE_W | PTE_COW)) > 0) {
         r = sys_page_map(0, va, envid, va, PTE_COW|PTE_U|PTE_P);
         if (r < 0) {
             return r;
